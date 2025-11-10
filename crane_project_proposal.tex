@@ -34,33 +34,45 @@ Key signals and variables:
 - y_b(t): barrier detection boolean / distance measurement
 - y_z(t): measured load height from proximity sensor
 
-Below is a schematic (not to scale) drawn with TikZ.
+Below is a schematic (not to scale).
 
 \begin{center}
 \begin{tikzpicture}[scale=1, every node/.style={scale=0.95}]
   % ground / rails
   \draw[thick] (0,0) -- (12,0) node[midway,below=4pt]{rail};
+
   % gantry supports
   \draw[thick] (1,0) -- (1,3) -- (4,3) -- (4,0);
   \draw[thick] (8,0) -- (8,3) -- (11,3) -- (11,0);
+
   % top beam
   \draw[thick] (4,3) -- (8,3);
-  % trolley
-  \draw[fill=gray!20] (5.2,2.6) rectangle (6.0,3.0) node[midway]{trolley};
+
+  % trolley 
+  \draw[fill=gray!20] (5.0,2.5) rectangle (6.8,3.2);
+  \node at (5.9,2.85) {trolley};
+
   % hoist cable and load
-  \draw[thick] (5.6,2.6) -- (5.6,1.0);
-  \draw[thick,fill=black!10] (5.0,0.2) rectangle (6.2,1.0) node[midway]{load $m$};
-  % barrier
-  \draw[fill=red!20] (7.2,0) rectangle (7.6,1.6) node[midway,right]{barrier $x_b,\; h_b$};
+  \draw[thick] (5.9,2.5) -- (5.9,1.0);
+  \draw[thick,fill=black!10] (5.3,0.2) rectangle (6.5,1.0) node[midway]{load $m$};
+
+  % barrier 
+  \draw[fill=red!20] (7.2,0) rectangle (7.6,1.6);
+  \node[right,xshift=10pt] at (7.6,0.8) {barrier $x_b,\; h_b$};
+
   % sensors
-  \draw[->] (5.6,3.1) -- ++(0,0.6) node[above]{ultrasonic/laser for $z$};
-  \draw[->] (6.0,2.8) -- ++(1.2,-0.8) node[right]{forward sensor for barrier};
+  \draw[->] (5.9,3.2) -- ++(0,0.6) node[above]{ultrasonic/laser for $z$};
+
+  % forward sensor label
+   \draw[->] (6.6,2.8) -- ++(1.8,-0.6) node[right,xshift=-1pt]{forward sensor};{forward sensor};
+
   % axes & variables
   \draw[->] (2, -0.6) -- ++(3,0) node[right]{$x$};
-  \draw[->] (11.5, 2.2) -- ++(0,-1.2) node[below]{$z$ (down positive)};
-  % labels
-  \node at (3.2,2.2) {gantry frame};
-  \node at (9.2,2.2) {rail span};
+  \draw[->] (11.4, 2.4) -- ++(0,-1.4) node[right]{$z$ (down positive)};
+
+  % gantry label remains
+  \node at (2.5,2.2){gantry frame};
+
 \end{tikzpicture}
 \end{center}
 
