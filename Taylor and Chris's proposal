@@ -1,0 +1,133 @@
+% One-axis Gantry Crane with Automated Obstacle Clearance — Proposal
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usepackage{siunitx}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{Project Proposal: Automated One-Dimensional Crane optimization with Obstacle Clearance}
+\author{Taylor Stubbs, Christopher Edvalsen}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Memo}
+To: Course Instructor / Project Supervisor \\
+From: Taylor S. Christopher E. \\
+Date: \today \\
+Subject: Proposal for an autonomously controlled single-axis gantry crane capable of detecting obstacles, adjusting the hoist height to clear them, and completing a horizontal transfer.
+
+This memo outlines the intended system design, sensing and actuation selections, control strategy, risks, schedule, and expected deliverables.
+
+\section{System Overview}
+The system consists of a trolley that moves along a single horizontal axis ($x$) on a rail system, with a hoist enabling vertical motion ($z$) of a suspended payload. One or more fixed obstacles of height $h_b$ may be located along the track at positions $x_b$. The control system detects the obstacle, raises the load to a safe pass-over height, traverses horizontally, and lowers the payload afterward.
+
+Primary sensing and actuation:
+\begin{itemize}
+\item Height measurement: ultrasonic or time-of-flight sensor.
+\item Forward obstacle detection: distance or proximity sensor.
+\item Microcontroller: ESP32 running MicroPython.
+\item Horizontal drive: DC or stepper motor with gearbox.
+\item Hoist drive: DC or stepper motor with gearbox.
+\end{itemize}
+
+Signals of interest:
+\[
+x(t), \quad z(t), \quad m, \quad x_b, h_b, \quad u_x(t), u_z(t), \quad y_b(t), y_z(t)
+\]
+
+A simplified conceptual layout is shown below.
+
+\begin{center}
+% (Same TikZ figure as original; unchanged)
+\begin{tikzpicture}[scale=1, every node/.style={scale=0.95}]
+  % ground / rails
+  \draw[thick] (0,0) -- (12,0) node[midway,below=4pt]{rail};
+
+  % gantry supports
+  \draw[thick] (1,0) -- (1,3) -- (4,3) -- (4,0);
+  \draw[thick] (8,0) -- (8,3) -- (11,3) -- (11,0);
+
+  % top beam
+  \draw[thick] (4,3) -- (8,3);
+
+  % trolley 
+  \draw[fill=gray!20] (5.0,2.5) rectangle (6.8,3.2);
+  \node at (5.9,2.85) {trolley};
+
+  % hoist cable and load
+  \draw[thick] (5.9,2.5) -- (5.9,1.0);
+  \draw[thick,fill=black!10] (5.3,0.2) rectangle (6.5,1.0) node[midway]{load $m$};
+
+  % barrier 
+  \draw[fill=red!20] (7.2,0) rectangle (7.6,1.6);
+  \node[right,xshift=10pt] at (7.6,0.8) {barrier $x_b,\; h_b$};
+
+  % sensors
+  \draw[->] (5.9,3.2) -- ++(0,0.6) node[above]{height sensor};
+  \draw[->] (6.6,2.8) -- ++(1.8,-0.6) node[right,xshift=-1pt]{forward sensor};
+
+  % axes
+  \draw[->] (2, -0.6) -- ++(3,0) node[right]{$x$};
+  \draw[->] (11.4, 2.4) -- ++(0,-1.4) node[right]{$z$};
+
+  \node at (2.5,2.2){gantry frame};
+\end{tikzpicture}
+\end{center}
+
+\section{Project Goals}
+\begin{enumerate}
+\item Implement closed-loop position control on both horizontal and vertical axes using the ESP32.
+\item Detect and classify obstacles and determine the required clearance height $z_{\text{clear}} \ge h_b + \Delta$.
+\item Execute a safe automated motion sequence: approach → lift → traverse → lower → stop.
+\item Demonstrate reliable behavior under repeat trials and document system performance.
+\end{enumerate}
+
+\section{System Parameters}
+Quantities treated as constants during operation include gravitational acceleration, approximate payload mass, rail length, hoist stroke limits, gearbox ratios, motor characteristics, available supply voltage, and estimated friction coefficients. These will be measured or estimated during early testing.
+
+\section{Actuation and Control}
+The ESP32 issues motor commands through driver interfaces (PWM and/or H-bridges). Low-level control loops (e.g., PID) will regulate $x(t)$ and $z(t)$. A supervisory state machine handles obstacle-handling logic and ensures minimum clearance margins.
+
+If the suspended mass exhibits noticeable sway, optional input shaping or anti-swing techniques may be introduced.
+
+\section{Modeling}
+A simplified 2-DOF translational model is used initially:
+\[
+m \ddot{x} + b_x \dot{x} = \alpha_x u_x,\qquad
+m \ddot{z} + b_z \dot{z} + m g = \alpha_z u_z
+\]
+More detailed models including cable sway are possible if required.
+
+\section{Sensors and Implementation}
+\begin{itemize}
+\item ESP32 executes the control loop (20–200 Hz depending on sensor timing).
+\item Ultrasonic / ToF sensors provide height and forward clearance data.
+\item Software includes filtering, debouncing, and safety interlocks.
+\end{itemize}
+
+\section{Risks and Mitigation}
+\begin{itemize}
+\item Sensor noise or unreliable obstacle detection → mitigate by filtering and cross-checking.
+\item CPU timing jitter → adjust loop rate, offload intensive steps where needed.
+\item Mechanical play or load swing → speed limits, input shaping, or revised geometry.
+\item Motor overload or collision risk → current limiting, soft limits, emergency stop.
+\end{itemize}
+
+\section{Schedule and Deliverables}
+\begin{enumerate}
+\item \textbf{Weeks 1–2}: Mechanical design, ordering, assembly.
+\item \textbf{Weeks 3–4}: Electrical integration and sensor validation.
+\item \textbf{Weeks 5–6}: Identify system parameters, tune PID controllers.
+\item \textbf{Weeks 7–8}: Implement automatic obstacle-handling logic and refine performance.
+\item \textbf{Weeks 9–10}: Stress testing, final documentation, demonstration video, GitHub release.
+\end{enumerate}
+
+Final outputs include a functioning prototype, source code, technical documentation, and a demonstration.
+
+\section{Reference Materials}
+(References remain as in original.)
+
+\end{document}
