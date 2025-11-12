@@ -19,29 +19,26 @@ From: Taylor S. Christopher E. \\
 Date: \today \\
 Subject: Proposal for an autonomously controlled single-axis gantry crane capable of detecting obstacles, adjusting the hoist height to clear them, and completing a horizontal transfer.
 
-This memo outlines the intended system design, sensing and actuation selections, control strategy, risks, schedule, and expected deliverables.
-
 \section{System Overview}
-The system consists of a trolley that moves along a single horizontal axis ($x$) on a rail system, with a hoist enabling vertical motion ($z$) of a suspended payload. One or more fixed obstacles of height $h_b$ may be located along the track at positions $x_b$. The control system detects the obstacle, raises the load to a safe pass-over height, traverses horizontally, and lowers the payload afterward.
+The system consists of a trolley that moves along a single horizontal axis ($x$) on a rail system, with a hoist enabling vertical motion ($z$) of a suspended payload. One or more fixed obstacles of height $h_b$ may be located along the track at positions $x_b$, $x_b+1$,ect. The control system detects the obstacle, raises the load to a safe pass-over height, traverses horizontally, and lowers the payload afterward.
 
 Primary sensing and actuation:
 \begin{itemize}
-\item Height measurement: ultrasonic or time-of-flight sensor.
-\item Forward obstacle detection: distance or proximity sensor.
+\item Height measurement: ultrasonic measuring distance from trolley to load.
+\item obstacle detection: ultrasonic sensors before and after load position.
 \item Microcontroller: ESP32 running MicroPython.
-\item Horizontal drive: DC or stepper motor with gearbox.
-\item Hoist drive: DC or stepper motor with gearbox.
+\item Horizontal drive: Stepper motor with Lego gearbox.
+\item Hoist drive: Stepper motor with gearbox.
 \end{itemize}
 
 Signals of interest:
 \[
-x(t), \quad z(t), \quad m, \quad x_b, h_b, \quad u_x(t), u_z(t), \quad y_b(t), y_z(t)
+x(t), \quad z(t), \quad m, \quad x_b, \quad h_b, \quad u_x(t), u_z(t), \quad y_b(t), y_z(t)
 \]
 
 A simplified conceptual layout is shown below.
 
 \begin{center}
-% (Same TikZ figure as original; unchanged)
 \begin{tikzpicture}[scale=1, every node/.style={scale=0.95}]
   % ground / rails
   \draw[thick] (0,0) -- (12,0) node[midway,below=4pt]{rail};
@@ -65,9 +62,15 @@ A simplified conceptual layout is shown below.
   \draw[fill=red!20] (7.2,0) rectangle (7.6,1.6);
   \node[right,xshift=10pt] at (7.6,0.8) {barrier $x_b,\; h_b$};
 
-  % sensors
-  \draw[->] (5.9,3.2) -- ++(0,0.6) node[above]{height sensor};
-  \draw[->] (6.6,2.8) -- ++(1.8,-0.6) node[right,xshift=-1pt]{forward sensor};
+  % sensors 
+  % height sensor 
+  \draw[->] (5.9,2.5) -- ++(0,-0.6) node[above,yshift=60pt]{height sensor};
+  
+  % forward sensor
+  \draw[->] (6.8,2.5) -- ++(0,-0.6) node[above,yshift=40pt,xshift=30pt]{forward sensor};
+  
+  % backward sensor
+  \draw[->] (5.0,2.5) -- ++(0,-0.6) node[above,yshift=40pt,xshift=-30pt]{backward sensor};
 
   % axes
   \draw[->] (2, -0.6) -- ++(3,0) node[right]{$x$};
@@ -76,6 +79,7 @@ A simplified conceptual layout is shown below.
   \node at (2.5,2.2){gantry frame};
 \end{tikzpicture}
 \end{center}
+
 
 \section{Project Goals}
 \begin{enumerate}
@@ -104,8 +108,8 @@ More detailed models including cable sway are possible if required.
 \section{Sensors and Implementation}
 \begin{itemize}
 \item ESP32 executes the control loop (20–200 Hz depending on sensor timing).
-\item Ultrasonic / ToF sensors provide height and forward clearance data.
-\item Software includes filtering, debouncing, and safety interlocks.
+\item Ultrasonic sensors provide height data of the load and the clearance on both sides.
+\item Software includes filtering, debouncing, safety interlocks, and height comparison between load height and surroundings.
 \end{itemize}
 
 \section{Risks and Mitigation}
