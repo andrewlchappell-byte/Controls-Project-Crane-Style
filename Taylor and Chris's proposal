@@ -6,6 +6,7 @@
 \usepackage{geometry}
 \geometry{margin=1in}
 
+
 \title{Project Proposal: Automated One-Dimensional Crane optimization with Obstacle Clearance}
 \author{Taylor Stubbs, Christopher Edvalsen}
 \date{\today}
@@ -15,12 +16,12 @@
 
 \section*{Memo}
 To: Course Instructor / Project Supervisor \\
-From: Taylor S. Christopher E. \\
+From: Taylor S., Christopher E. \\
 Date: \today \\
 Subject: Proposal for an autonomously controlled single-axis gantry crane capable of detecting obstacles, adjusting the hoist height to clear them, and completing a horizontal transfer.
 
 \section{System Overview}
-The system consists of a trolley that moves along a single horizontal axis ($x$) on a rail system, with a hoist enabling vertical motion ($z$) of a suspended payload. One or more fixed obstacles of height $h_b$ may be located along the track at positions $x_b$, $x_b+1$,ect. The control system detects the obstacle, raises the load to a safe pass-over height, traverses horizontally, and lowers the payload afterward.
+The system consists of a trolley that moves along a single horizontal axis ($x$) on a rail system, with a hoist enabling vertical motion ($z$) of a suspended payload. One or more fixed obstacles of height $h_b$ may be located along the track at positions $x_b$, $x_b+1$, ect. The control system detects the obstacle, raises the load to a safe pass-over height, traverses horizontally, and lowers the payload afterward.
 
 Primary sensing and actuation:
 \begin{itemize}
@@ -33,7 +34,7 @@ Primary sensing and actuation:
 
 Signals of interest:
 \[
-x(t), \quad z(t), \quad m, \quad x_b, \quad h_b, \quad u_x(t), u_z(t), \quad y_b(t), y_z(t)
+x(t), \quad z_l(t), \quad m, \quad x_b, \quad h_b, \quad u_x(t), \quad u_z(t), \quad z_f(t), \quad z_b(t)
 \]
 
 A simplified conceptual layout is shown below.
@@ -64,13 +65,13 @@ A simplified conceptual layout is shown below.
 
   % sensors 
   % height sensor 
-  \draw[->] (5.9,2.5) -- ++(0,-0.6) node[above,yshift=60pt]{height sensor};
+  \draw[->] (5.9,2.5) -- ++(0,-0.6) node[above,yshift=60pt]{load height sensor (zb)};
   
   % forward sensor
-  \draw[->] (6.8,2.5) -- ++(0,-0.6) node[above,yshift=40pt,xshift=30pt]{forward sensor};
+  \draw[->] (6.8,2.5) -- ++(0,-0.6) node[above,yshift=40pt,xshift=30pt]{forward sensor (zf)};
   
   % backward sensor
-  \draw[->] (5.0,2.5) -- ++(0,-0.6) node[above,yshift=40pt,xshift=-30pt]{backward sensor};
+  \draw[->] (5.0,2.5) -- ++(0,-0.6) node[above,yshift=40pt,xshift=-30pt]{backward sensor (zb)};
 
   % axes
   \draw[->] (2, -0.6) -- ++(3,0) node[right]{$x$};
@@ -122,16 +123,34 @@ More detailed models including cable sway are possible if required.
 
 \section{Schedule and Deliverables}
 \begin{enumerate}
-\item \textbf{Weeks 1–2}: Mechanical design, ordering, assembly.
-\item \textbf{Weeks 3–4}: Electrical integration and sensor validation.
-\item \textbf{Weeks 5–6}: Identify system parameters, tune PID controllers.
-\item \textbf{Weeks 7–8}: Implement automatic obstacle-handling logic and refine performance.
-\item \textbf{Weeks 9–10}: Stress testing, final documentation, demonstration video, GitHub release.
+    \item \textbf{Week 1}: Complete mechanical design, order components, begin assembly.
+    \item \textbf{Week 2}: Finish assembly and initial mechanical testing.
+    \item \textbf{Week 3}: Integrate electrical systems and validate sensors.
+    \item \textbf{Week 4}: Identify system parameters and tune PID controllers.
+    \item \textbf{Week 5}: Implement automatic obstacle-handling logic and refine performance.
+    \item \textbf{Week 6}: Conduct stress testing, finalize documentation, record demonstration video.
 \end{enumerate}
 
-Final outputs include a functioning prototype, source code, technical documentation, and a demonstration.
 
-\section{Reference Materials}
-(References remain as in original.)
+\begin{thebibliography}{9}
 
+\bibitem{Yong2023}
+Yong, Y. P., Lee, S. J., Chang, Y. H., Lee, K. H., Kwon, S. W., Cho, C. S., \& Chung, S. W. (2023).
+Object detection and distance measurement algorithm for collision avoidance of precast concrete installation during crane lifting process.
+\textit{Buildings, 13}(10), 2551.
+\url{https://doi.org/10.3390/buildings13102551}
+
+\bibitem{Gu2012}
+Gu, L., Kou, X., \& Jia, J. (2012, August).
+Distance measurement for tower crane obstacle based on multi-ultrasonic sensors.
+In \textit{Proceedings of the 2012 IEEE International Conference on Automation Science and Engineering (CASE)}, 1028--1032. IEEE.
+\url{https://doi.org/10.1109/CoASE.2012.6386344}
+
+\bibitem{Wang2023}
+Wang, J., Zhang, Q., Yang, B., \& Zhang, B. (2023).
+Vision-based automated recognition and 3D localization framework for tower cranes using far-field cameras.
+\textit{Sensors, 23}(10), 4851.
+\url{https://doi.org/10.3390/s23104851}
+
+\end{thebibliography}
 \end{document}
