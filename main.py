@@ -1,14 +1,19 @@
 import time
 from machine import Pin  # type: ignore
 
-led = Pin(2, Pin.OUT)
+power = Pin(21, Pin.OUT)
+power.on()
+motor = Pin(22, Pin.OUT)
 
-def blink_forever():
-    print("main: entering blink loop")
-    while True:
-        led.on()
-        time.sleep(0.1)
-        led.off()
-        time.sleep(0.1)
+def main():
+    
+    file = open("data.csv", "w")
+    for _ in range(20):
+        motor.on()
+        time.sleep(1.5)
+        motor.off()
+        time.sleep(1.5)
 
-blink_forever()
+    file.close()
+
+main()

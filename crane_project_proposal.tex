@@ -7,15 +7,15 @@
 \usepackage{geometry}
 \geometry{margin=1in}
 \title{Project Proposal: One-axis Gantry Crane with Autonomous Barrier-Overpass}
-\author{Caleb K. D. (calebkd34) \\ Draft prepared: \today}
+\author{Caleb Douglass \\ Draft prepared: \today}
 \date{}
 
 \begin{document}
 \maketitle
 
 \section*{Memo}
-To: Project Supervisor / Course Instructor \\
-From: Caleb K. D. (calebkd34) \\
+To: John Hedengren \\
+From: Caleb K. D. \\
 Date: \today \\
 Re: Proposal for a single-axis gantry crane that detects an obstacle, raises the load to clear the obstacle, translates horizontally, then lowers the load.
 
@@ -182,18 +182,13 @@ Major risk areas:
 Uncertain factors will be addressed by sequential testing: start with open-loop characterization (identify m, friction coefficients), then closed-loop position control on each axis, then integrate barrier logic and perform guided trials with slow speeds before increasing performance.
 
 \section{Timeline and deliverables}
-Proposed 10-week timeline (example for a semester project):
+Proposed 5-week timeline (accelerated / semester mini-project):
 
-- Week 1: Detailed design, parts list, ordering components. Create CAD / sketches.
-- Week 2: Mechanical assembly of rails, trolley, hoist; mount sensors and motors.
-- Week 3: Electrical wiring, motor drivers, basic motor tests (open-loop).
-- Week 4: Sensor driver integration on ESP32 (MicroPython), basic reading and filtering.
-- Week 5: System identification: measure friction, motor constants, sensor characteristics.
-- Week 6: Implement and tune PID controllers for $z$ (hoist) and $x$ (trolley) axes.
-- Week 7: Implement barrier-detection logic and high-level state machine; conservative tests.
-- Week 8: Performance tuning (speeds, clearance margin), add safety features (limits, E-stop).
-- Week 9: Robustness testing, corner cases, documentation of experiments.
-- Week 10: Final report (PDF), code repository (GitHub) with README and usage, demonstration video and live demo.
+- Week 1: Finalize detailed design and parts list; order components. Begin mechanical assembly of rails, trolley and hoist; create basic CAD/sketches and mount points.
+- Week 2: Complete mechanical assembly and wiring. Integrate motor drivers and power; run basic open-loop motor tests and verify limit switches/encoders.
+- Week 3: Integrate sensors on ESP32 (MicroPython): height sensor and forward detector drivers; implement simple filtering and validate measurements. Perform initial system identification (friction, travel limits).
+- Week 4: Implement and tune low-level controllers (PID) for $z$ (hoist) and $x$ (trolley). Implement high-level state machine including barrier-detection and safe-raise logic. Add safety limits and emergency stop.
+- Week 5: Robustness and corner-case testing, performance tuning, finalize documentation, capture demo video, and prepare final report and code repository.
 
 Anticipated final product:
 - Working prototype gantry that reliably detects a barrier and raises/lowers the load to clear it, along with source code (MicroPython), documentation, and a short demo video. A written final report in LaTeX summarizing design, models, experiments and results.
