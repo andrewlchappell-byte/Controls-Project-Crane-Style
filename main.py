@@ -47,24 +47,47 @@ def get_distance():
     trig.value(0)
 
     pulse = time_pulse_us(echo, 1, 30000)
+
     if pulse <= 0:
         return None
 
-    return (pulse / 2) / 29.1   # cm
+    return (pulse / 2) / 29.1  # cm
+
+
+# -------------------------
+# CSV Logging Setup
+# -------------------------
+CSV_FILENAME = "distance_log.csv"
+
+# Create/overwrite file and add header
+with open(CSV_FILENAME, "w") as f:
+    f.write("time_s,distance_cm\n")
+
+def log_distance(timestamp, distance):
+    """Append one line to CSV."""
+    with open(CSV_FILENAME, "a") as f:
+        f.write(timestamp)
+        f.write(",")
+        f.write(float(distance))
+        file.write("\n")
+
 
 # -------------------------
 # Step test parameters
 # -------------------------
-STEP_TARGETS = [20]   # example step distances (cm)
+STEP_TARGETS = [20, 30, 10]  # cm
+SETTLE_TIME  = 5      # seconds
+TOLERANCE    = 1.0    # cm
 
-SETTLE_TIME  = 5       # seconds at each step target
-TOLERANCE    = 1.0     # cm acceptable deviation
 
 # -------------------------
 # Main step test loop
 # -------------------------
+if not get_distance():
+    quit()
+    1 / 0
 
-# winch lower function turns small gear clockwise
+
 for target in STEP_TARGETS:
     print("\n--- New Step Target:", target, "cm ---")
 
@@ -73,15 +96,19 @@ for target in STEP_TARGETS:
 
     while True:
         dist = get_distance()
-
-        if dist is None:
-            print("No echo — stopping for safety")
-            winch_stop()
-            continue
+        now = time.time()
 
         print("Distance:", dist, "cm")
 
-        # --- Control movement ---
+        # Log distance to CSV
+        log_distance(now, dist)
+
+        # --- Movement control ---
+        #if dist is None:
+            #print("No echo — stopping motor")
+            #winch_stop()
+            #continue
+
         if dist > target + TOLERANCE:
             print("→ Raising load")
             winch_raise(700)
@@ -91,22 +118,19 @@ for target in STEP_TARGETS:
             winch_lower(700)
 
         else:
-            # Within target range
             if not reached_target:
                 print("Target reached — holding")
                 reached_target = True
-                step_start_time = time.time()
+                step_start_time = now
 
             winch_stop()
 
-        # If target reached and held long enough → move to next step
-        if reached_target and (time.time() - step_start_time) >= SETTLE_TIME:
-            print("Step complete. Moving to next step.")
+        if reached_target and (now - step_start_time) >= SETTLE_TIME:
+            print("Step complete.")
             winch_stop()
-            break
 
         time.sleep(0.1)
 
-# End of step test
+# End
 print("\nStep test finished.")
 winch_stop()
