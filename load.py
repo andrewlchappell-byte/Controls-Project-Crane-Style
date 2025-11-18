@@ -53,7 +53,7 @@ def to_setpoint(setpoint):
 
         time.sleep(0.1)
         distance = get_distance_cm(winch_sensor_trig, winch_sensor_echo)
-        print(f"\r{distance}", end = "")
+        # print(f"\r{distance}", end = "")
 
         # add values
         TIMES.append(str(time.time()))
@@ -83,22 +83,27 @@ def to_setpoint(setpoint):
 def main():
     
     try:
-        print("Looking for 20.")
+        # print("Looking for 20.")
         to_setpoint(20)
         time.sleep(3)
-        print("\nLooking for 30.")
+        # print("\nLooking for 30.")
         to_setpoint(30)
         time.sleep(3)
-        print("\nLooking for 10.")
+        # print("\nLooking for 10.")
         to_setpoint(10)
-        time.sleep(3)
 
     finally:
+        string = "Time,Setpoint,Distance,Action\n"
+        stringy = []
+
+        for i in range(len(TIMES)):
+            stringy.append(",".join((TIMES[i],SETPOINTS[i],DISTANCES[i],ACTIONS[i])))
+
+        string += "\n".join(stringy)
+
         with open("data.csv", "w") as file:
-            file.write("Time,Setpoint,Distance,Action\n")
-            
-            for i in range(len(TIMES)):
-                file.write(",".join((TIMES[i],SETPOINTS[i],DISTANCES[i],ACTIONS[i],"\n")))
+            file.write(string)
+
 
 if __name__ == "__main__":
 
