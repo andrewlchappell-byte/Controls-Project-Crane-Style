@@ -1,0 +1,23 @@
+\documentclass[12pt]{article} \usepackage{amsmath} \usepackage{geometry} \geometry{margin=1in} \usepackage{parskip} \usepackage{hyperref}
+
+\title{One-Axis Gantry Crane Project Update} \date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introduction} This progress report summarizes the current status of the one-axis gantry crane with hoist project. It covers the prototype hardware, mathematical model, open-loop and measured responses, updated timeline, and risk discussion. The objective remains to detect barriers, raise the load safely, translate past obstacles, and lower the load precisely.
+
+\section*{Literature Review} \begin{itemize} \item Gantry systems are often modeled as translational point masses; sway is addressed with pendulum dynamics and anti-sway control. \item Cascaded PID loops with feedforward improve response and reduce overshoot. \item Sensor fusion and debounce logic enhance obstacle detection reliability. \item Microcontroller timing and power supply stability are critical for consistent control. \end{itemize} These informed the choice of a 2-DOF point mass model, PID control, and conservative sensing for the prototype.
+
+\section*{Model Description} \begin{itemize} \item \textbf{States:} trolley position $x(t)$, load height $z(t)$, and their derivatives. \item \textbf{Inputs:} horizontal and vertical actuator commands. \item \textbf{Measurements:} encoder position, height sensor, barrier detector. \item \textbf{Parameters:} payload mass, damping coefficients, actuator gains, gravity, geometry limits. \end{itemize} Nominal dynamics: \begin{equation*} m\ddot{x} + b_x\dot{x} = \alpha_x u_x \end{equation*} \begin{equation*} m\ddot{z} + b_z\dot{z} + mg = \alpha_z u_z \end{equation*} Optional pendulum sway model reserved for later if needed.
+
+\section*{Open-Loop and Measured Responses} \begin{itemize} \item Linear simulation with estimated parameters guides tuning. \item Prototype hardware operational; basic moves complete and settle near setpoints. \item Stable power yields repeatable responses matching the model. \item Unstable power causes "ghost" actuator moves, sensor noise, and timing jitter. \item These anomalies indicate supply-dependent gains and sensor faults treated as disturbances. \end{itemize}
+
+\section*{Project Timeline} \begin{itemize} \item Completed: mechanical assembly, actuator installation, ESP32 integration, sensor setup, preliminary tests. \item In progress: power system stabilization, PID tuning, sensor filtering, disturbance characterization. \item Remaining: autonomous state machine, sway control if needed, full demonstrations. \end{itemize}
+
+\section*{Risks and Uncertainties} \begin{itemize} \item Proposal risks: sensor reliability, timing jitter, mechanical sway, power limits. \item New risks: power instability causing variable gains and sensor noise. \item Mitigations: power decoupling, sensor validation, friction modeling, possible native code migration. \end{itemize}
+
+\section*{Conclusions} The project has advanced to a functioning prototype with integrated hardware and sensors. Immediate focus is on stabilizing power and improving sensing to enable robust control and autonomous operation. Upcoming deliverables include characterization reports, tuned controllers, and demonstration runs.
+
+\end{document}
