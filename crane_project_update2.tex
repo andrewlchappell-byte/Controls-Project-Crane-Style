@@ -1,0 +1,63 @@
+% Need to synthesize the modeling assignment into this one, as a meaningful part of the previous report.
+% Done by Andrew on 11/25/25 by hand, no extra Copilot today. Have to sharpen my skills somehow.
+
+\documentclass[12pt]{article} \usepackage{amsmath} \usepackage{geometry} \geometry{margin=1in} \usepackage{parskip} \usepackage{hyperref}
+\usepackage{float} %Copilot said add this, helps with image placement
+\usepackage{graphicx} % Required for including images
+
+
+\title{One-Axis Gantry Crane Project Update 2} \date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introduction} By Andrew Chappell and Caleb K.D.
+
+This progress report summarizes the current status of the one-axis gantry crane with hoist project. It focuses on the FOPDT model fit to our measured parameters, and understanding the fundamentals of the control system. The objective remains to detect barriers, raise the load safely, translate past obstacles, and lower the load precisely.
+
+\section*{Literature Review} \begin{itemize} \item Gantry systems are often modeled as translational point masses; sway is addressed with pendulum dynamics and anti-sway control. \item Cascaded PID loops with feedforward improve response and reduce overshoot. \item Sensor fusion and debounce logic enhance obstacle detection reliability. \item Microcontroller timing and power supply stability are critical for consistent control. \end{itemize} These informed the choice of a 2-DOF point mass model, PID control, and conservative sensing for the prototype.
+
+\section*{Model Description} \begin{itemize} \item \textbf{States:} trolley position $x(t)$, load height $z(t)$. \item \textbf{Inputs:} horizontal and vertical actuator commands. \item \textbf{Measurements:} encoder position, height sensor, barrier detector. \item \textbf{Parameters:} payload mass, actuator gains, gantry travel friction. \end{itemize} Nominal dynamics: \begin{equation*} m\ddot{x} + b_x\dot{x} = \alpha_x u_x \end{equation*} \begin{equation*} m\ddot{z} + b_z\dot{z} + mg = \alpha_z u_z \end{equation*} Optional pendulum sway model reserved for later if needed.
+
+\section*{Open-Loop and Measured Responses} \begin{itemize} \item Linear simulation with estimated parameters guides tuning. \item Prototype hardware operational; basic moves complete and settle near setpoints. \item Stable power yields repeatable responses matching the model, with consistent travel rates and sensing responses.
+\end{itemize}
+
+
+
+\section*{FOPDT Modeling Results} \begin{itemize} \item Step test data regressed to fit FOPDT parameters. \item It is determined that the system does not fit an FOPDT model. \item Instead, actuator response is characterized as "bang-bang" though in both forward and reverse directions.
+\item Our control system does not exhibit disturbances in the variables controlled by the actuators. However, our sensor data could experience disturbances and noise/bad values, and we will need to implement disturbance rejection there.
+\end{itemize}
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{FOPDT and data.png}
+    \caption{FOPDT model and step test data}
+    \label{fig:placeholder}
+\end{figure}
+
+
+
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=0.5\linewidth]{Screenshot 2025-11-18 220043.png}
+%     \caption{Actuator response}
+%     \label{fig:placeholder}
+% \end{figure}
+
+% \begin{figure}
+%         \centering
+%         \includegraphics[width=0.5\linewidth]{image.png}
+%         \caption{Step Test Results over three setpoints}
+%         \label{fig:placeholder}
+%     \end{figure}
+
+
+\section*{Project Timeline} \begin{itemize} \item Completed: mechanical assembly, actuator installation, ESP32 integration, sensor setup, preliminary tests. \item In progress: power system stabilization, PID tuning, sensor filtering, disturbance characterization. \item Remaining: autonomous state machine, sway control if needed, full demonstrations. \end{itemize}
+
+\section*{Risks and Uncertainties} \begin{itemize} \item Proposal risks: sensor reliability, power limits. \item Update 1 Risks: swing and jaunty hang angle of cargo cause sensor noise and false negatives. Largely resolved by rebuilding pulleys and cargo load. \item Update 2 Risks: Sensor cone of view may cause obstacle sensing to detect the payload at low high setpoints. \item Mitigations: Space out sensors further from crane body \end{itemize}
+
+\section*{Conclusions} The project has progressed to a functioning prototype with integrated hardware and sensors. Immediate focus is on stabilizing power and improving sensing to enable robust control and autonomous operation. Upcoming deliverables include characterization reports, tuned controllers, and demonstration runs.
+
+\end{document}
