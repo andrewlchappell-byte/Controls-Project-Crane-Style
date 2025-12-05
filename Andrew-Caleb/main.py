@@ -77,7 +77,7 @@ winch_motor_down = Pin(22, Pin.OUT)
 
 side_motor_power = Pin(5, Pin.OUT)
 side_motor_north = Pin(18, Pin.OUT)
-side_motor_wall = Pin(19, Pin.OUT)
+side_motor_south = Pin(19, Pin.OUT)
 
 def test_sensors():
 
@@ -105,6 +105,8 @@ def get_distance_cm(trig_pin: Pin, echo_pin: Pin, timeout_us=30000):
     pulse = time_pulse_us(echo_pin, 1, timeout_us)
 
     if pulse <= 0:
+        # print(pulse)
+        return None
         # print(pulse)
         return None
 
@@ -165,13 +167,27 @@ def to_setpoint(setpoint):
                 # short delay then retry
                 time.sleep(0.1)
                 continue
+            # timeout/no reading: stop motor and log action 0
+            if winch_distance <= 0:
+                winch_stop()
+                WINCH_ACTIONS.append("0")
+                # short delay then retry
+                time.sleep(0.1)
+                continue
 
+            error = setpoint - winch_distance
             error = setpoint - winch_distance
 
             if error > 0.25:  # too far
                 winch_up()
                 WINCH_ACTIONS.append("1")
+            if error > 0.25:  # too far
+                winch_up()
+                WINCH_ACTIONS.append("1")
 
+            elif error < -0.25:  # too close
+                winch_down()
+                WINCH_ACTIONS.append("-1")
             elif error < -0.25:  # too close
                 winch_down()
                 WINCH_ACTIONS.append("-1")
@@ -180,7 +196,17 @@ def to_setpoint(setpoint):
                 winch_stop()
                 WINCH_ACTIONS.append("0")
                 break
+            else:  # at setpoint
+                winch_stop()
+                WINCH_ACTIONS.append("0")
+                break
         
+def pass_obstacle(load_height = 7, threshold = 10):
+
+    timer = 0
+    found_obstacle = False
+    winch_fake = 100
+    
 def pass_obstacle(load_height = 7, threshold = 10):
 
     timer = 0
@@ -208,11 +234,16 @@ def pass_obstacle(load_height = 7, threshold = 10):
             # there is a valley / we passed over the obstacle
             if found_obstacle:
                 timer += 1
+            # there is a valley / we passed over the obstacle
+            if found_obstacle:
+                timer += 1
 
             if timer > 70:
                 sample(winch_distance, WALL_distance, None, 0)
                 side_stop()
 
+                # exit
+                break
                 # exit
                 break
 
