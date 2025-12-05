@@ -19,6 +19,10 @@ class Filtered:
         if self.last == None:
 
             self.last = value
+
+        # edge case
+        if value is None:
+            return
         
         # the point is an outlier
         if abs(value - self.last) > self.threshold:
@@ -51,9 +55,9 @@ class Filtered:
         
 TIMES = []
 SETPOINTS = []
-WINCH_DISTANCES = Filtered(persistance = 3)
-NORTH_DISTANCES = Filtered(persistance = 5)
-SOUTH_DISTANCES = Filtered(persistance = 5)
+WINCH_DISTANCES = Filtered(persistance = 3, threshold = 15)
+NORTH_DISTANCES = Filtered(persistance = 3, threshold = 15)
+SOUTH_DISTANCES = Filtered(persistance = 3, threshold = 15)
 WINCH_ACTIONS = []
 SIDE_ACTIONS = []
 
@@ -76,6 +80,27 @@ side_motor_power = Pin(5, Pin.OUT)
 side_motor_north = Pin(18, Pin.OUT)
 side_motor_south = Pin(19, Pin.OUT)
 
+def test_sensors():
+
+    # test winch sensor
+    winch_distance = get_distance_cm(winch_sensor_trig, winch_sensor_echo)
+    assert winch_distance is not None, "Winch sensor failed"
+    print("Winch sensor passed")
+
+    # time.sleep(1)
+
+    # # test north sensor
+    # north_distance = get_distance_cm(north_sensor_trig, north_sensor_echo)
+    # assert north_distance is not None, "North sensor failed"
+    # print("North sensor passed")
+    
+    time.sleep(1)
+
+    # test south sensor
+    south_distance = get_distance_cm(south_sensor_trig, south_sensor_echo)
+    assert south_distance is not None, "South sensor failed"
+    print("South sensor passed")
+
 def get_distance_cm(trig_pin: Pin, echo_pin: Pin, timeout_us=30000):
 
     # Send 10us trigger pulse
@@ -88,7 +113,8 @@ def get_distance_cm(trig_pin: Pin, echo_pin: Pin, timeout_us=30000):
     pulse = time_pulse_us(echo_pin, 1, timeout_us)
 
     if pulse <= 0:
-        return 0
+        # print(pulse)
+        return None
 
     return (pulse / 2) / 29.1  # cm
 
@@ -140,74 +166,95 @@ def to_setpoint(setpoint):
         time.sleep(0.1)
 
         # record one sample per loop
-        winch_distance = float(get_distance_cm(winch_sensor_trig, winch_sensor_echo))
-        north_distance = float(get_distance_cm(north_sensor_trig, north_sensor_echo))
-        south_distance = float(get_distance_cm(south_sensor_trig, south_sensor_echo))
+        winch_distance = get_distance_cm(winch_sensor_trig, winch_sensor_echo)
+        # north_distance = get_distance_cm(north_sensor_trig, north_sensor_echo)
+        south_distance = get_distance_cm(south_sensor_trig, south_sensor_echo)
+        north_distance = 0
         
         sample(winch_distance, north_distance, south_distance, setpoint)
+        if winch_distance is not None and north_distance is not None and south_distance is not None:
 
-        # timeout/no reading: stop motor and log action 0
-        if winch_distance <= 0:
-            winch_stop()
-            WINCH_ACTIONS.append("0")
-            # short delay then retry
-            time.sleep(0.1)
-            continue
+            # timeout/no reading: stop motor and log action 0
+            if winch_distance <= 0:
+                winch_stop()
+                WINCH_ACTIONS.append("0")
+                # short delay then retry
+                time.sleep(0.1)
+                continue
 
-        error = setpoint - winch_distance
+            error = setpoint - winch_distance
 
-        if error > 0.25:  # too far
-            winch_up()
-            WINCH_ACTIONS.append("1")
+            if error > 0.25:  # too far
+                winch_up()
+                WINCH_ACTIONS.append("1")
 
-        elif error < -0.25:  # too close
-            winch_down()
-            WINCH_ACTIONS.append("-1")
+            elif error < -0.25:  # too close
+                winch_down()
+                WINCH_ACTIONS.append("-1")
 
-        else:  # at setpoint
-            winch_stop()
-            WINCH_ACTIONS.append("0")
-            break
+            else:  # at setpoint
+                winch_stop()
+                WINCH_ACTIONS.append("0")
+                break
         
-def pass_obstacle(load_height = 5, threshold = 5):
+def pass_obstacle(load_height = 7, threshold = 10):
 
+    timer = 0
+    found_obstacle = False
+    winch_fake = 100
+    
     while True:
         # wait a sec
         time.sleep(0.1)
 
         # measure distances
-        winch_distance = float(get_distance_cm(winch_sensor_trig, winch_sensor_echo))
-        north_distance = float(get_distance_cm(north_sensor_trig, north_sensor_echo))
-        south_distance = float(get_distance_cm(south_sensor_trig, south_sensor_echo))
-
-        # record distances and time
+        winch_distance = get_distance_cm(winch_sensor_trig, winch_sensor_echo)
+        # north_distance = get_distance_cm(north_sensor_trig, north_sensor_echo)
+        south_distance = get_distance_cm(south_sensor_trig, south_sensor_echo)
+        north_distance = 0
 
         # there is a tall obstacle
-        if north_distance + threshold + load_height < winch_distance:
+        if north_distance is not None and winch_distance is not None and south_distance is not None:
+            print("-", end = "")
+            if south_distance + threshold + load_height < min(winch_distance, winch_fake) and not found_obstacle:
+                print("Obstacle: ", north_distance, south_distance, min(winch_distance, winch_fake))
+                found_obstacle = True
+                winch_fake = south_distance - load_height
+                sample(winch_distance, north_distance, south_distance, None, 0)
+                side_stop()
+                to_setpoint(south_distance - load_height)
 
-            sample(winch_distance, north_distance, south_distance, None, 0)
-            side_stop()
-            to_setpoint(north_distance - load_height - threshold)
+            # there is a valley / we passed over the obstacle
+            if found_obstacle:
+                timer += 1
 
-        # there is a valley / we passed over the obstacle
-        elif south_distance - threshold - load_height > winch_distance:
+            if timer > 70:
+                print("Valley: ", north_distance, south_distance, winch_distance)
+                sample(winch_distance, north_distance, south_distance, None, 0)
+                side_stop()
 
-            sample(winch_distance, north_distance, south_distance, None, 0)
-            side_stop()
-            to_setpoint(south_distance - load_height - threshold)
+                # exit
+                break
 
-            # exit
-            break
-
-        # move forward
-        else:
-            sample(winch_distance, north_distance, south_distance, None, 1)
-            move_north()
+            # move forward
+            else:
+                print("moving forward", timer, south_distance, winch_distance)
+                sample(winch_distance, north_distance, south_distance, None, 1)
+                move_north()
 
 def main():
     
+    winch_stop()
+    side_stop()
+    test_sensors()
+
     try:
+        # move_north()
+        # time.sleep(1)
+        side_stop()
+        to_setpoint(45)
         pass_obstacle()
+        to_setpoint(45)
 
     finally:
         string = "Time,Setpoint,Winch Distance,North Distance,South Distance,Winch Action,Side Action\n"
