@@ -130,10 +130,10 @@ def winch_stop():
 def side_stop():
     side_motor_power.off()
     side_motor_north.off()
-    side_motor_wall.off()
+    side_motor_south.off()
 
 def move_north():
-    side_motor_wall.off()
+    side_motor_south.off()
     side_motor_power.on()
     side_motor_north.on()
 
@@ -196,22 +196,11 @@ def to_setpoint(setpoint):
                 winch_stop()
                 WINCH_ACTIONS.append("0")
                 break
-            else:  # at setpoint
-                winch_stop()
-                WINCH_ACTIONS.append("0")
-                break
-        
-def pass_obstacle(load_height = 7, threshold = 10):
+
+def pass_obstacle(setpoint, load_height = 7, threshold = 10):
 
     timer = 0
     found_obstacle = False
-    winch_fake = 100
-    
-def pass_obstacle(load_height = 7, threshold = 10):
-
-    timer = 0
-    found_obstacle = False
-    winch_fake = 100
     
     while True:
         # wait a sec
@@ -224,7 +213,7 @@ def pass_obstacle(load_height = 7, threshold = 10):
         # there is a tall obstacle
         if winch_distance is not None and WALL_distance is not None:
             print("-", end = "")
-            if WALL_distance + threshold + load_height < min(winch_distance, winch_fake) and not found_obstacle:
+            if WALL_distance + threshold + load_height < setpoint and not found_obstacle:
                 found_obstacle = True
                 winch_fake = WALL_distance - load_height
                 sample(winch_distance, WALL_distance, None, 0)
@@ -264,7 +253,7 @@ def main():
         # time.sleep(1)
         side_stop()
         to_setpoint(45)
-        pass_obstacle()
+        pass_obstacle(45)
         to_setpoint(45)
 
     finally:
