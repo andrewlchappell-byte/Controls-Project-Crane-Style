@@ -1,4 +1,4 @@
-with open("main.py","w") as f: f.write(r"""from machine import Pin, time_pulse_us
+with open("main.py","w") as f: f.write(r"""from machine import Pin, PWM, time_pulse_us
 import time
 
 # for disturbance and outlier rejection
@@ -12,8 +12,11 @@ class Filtered:
         self.pending = None
         self.count = 0
         self.values = []
+        self.raw = []
 
     def filter(self, value):
+
+        self.raw.append(value)
 
         # base case:
         if self.last == None:
@@ -38,13 +41,13 @@ class Filtered:
 
             # the outlier has stayed long enough to be accepted
             if self.count >= self.persistance:
-                self.last  = self.pending
+                self.last  = self.pending / 2 + self.last / 2
                 self.pending = None
                 self.count = 0
 
         # no outlier
         else:
-            self.last = value
+            self.last = value / 2 + self.last / 2
             self.pending = None
             self.count = 0
 
@@ -55,9 +58,8 @@ class Filtered:
         
 TIMES = []
 SETPOINTS = []
-WINCH_DISTANCES = Filtered(persistance = 3, threshold = 15)
-NORTH_DISTANCES = Filtered(persistance = 3, threshold = 15)
-SOUTH_DISTANCES = Filtered(persistance = 3, threshold = 15)
+WINCH_DISTANCES = Filtered()
+WALL_DISTANCES = Filtered()
 WINCH_ACTIONS = []
 SIDE_ACTIONS = []
 
@@ -65,14 +67,11 @@ SIDE_ACTIONS = []
 winch_sensor_trig = Pin(27, Pin.OUT)
 winch_sensor_echo = Pin(26, Pin.IN)
 
-north_sensor_trig = Pin(25, Pin.OUT)
-north_sensor_echo = Pin(33, Pin.IN)
-
-south_sensor_trig = Pin(12, Pin.OUT)
-south_sensor_echo = Pin(14, Pin.IN)
+wall_sensor_trig = Pin(12, Pin.OUT)
+wall_sensor_echo = Pin(14, Pin.IN)
 
 # motors
-winch_motor_power = Pin(23, Pin.OUT)
+winch_motor_power = PWM(Pin(23), freq = 1000)
 winch_motor_up = Pin(21, Pin.OUT)
 winch_motor_down = Pin(22, Pin.OUT)
 
@@ -85,21 +84,12 @@ def test_sensors():
     # test winch sensor
     winch_distance = get_distance_cm(winch_sensor_trig, winch_sensor_echo)
     assert winch_distance is not None, "Winch sensor failed"
-    print("Winch sensor passed")
-
-    time.sleep(1)
-
-    # test north sensor
-    north_distance = get_distance_cm(north_sensor_trig, north_sensor_echo)
-    assert north_distance is not None, "North sensor failed"
-    print("North sensor passed")
     
     time.sleep(1)
 
-    # test south sensor
-    south_distance = get_distance_cm(south_sensor_trig, south_sensor_echo)
-    assert south_distance is not None, "South sensor failed"
-    print("South sensor passed")
+    # test wall sensor
+    wall_distance = get_distance_cm(wall_sensor_trig, wall_sensor_echo)
+    assert wall_distance is not None, "wall sensor failed"
 
 def get_distance_cm(trig_pin: Pin, echo_pin: Pin, timeout_us=30000):
 
@@ -113,23 +103,23 @@ def get_distance_cm(trig_pin: Pin, echo_pin: Pin, timeout_us=30000):
     pulse = time_pulse_us(echo_pin, 1, timeout_us)
 
     if pulse <= 0:
-        # print(pulse)
+        return None
         return None
 
     return (pulse / 2) / 29.1  # cm
 
-def winch_up():
+def winch_up(speed = 1023):
     winch_motor_down.off()
-    winch_motor_power.on()
+    winch_motor_power.duty(speed)
     winch_motor_up.on()
 
-def winch_down():
+def winch_down(speed = 1023):
     winch_motor_up.off()
-    winch_motor_power.on()
+    winch_motor_power.duty(speed)
     winch_motor_down.on()
 
 def winch_stop():
-    winch_motor_power.off()
+    winch_motor_power.duty(0)
     winch_motor_up.off()
     winch_motor_down.off()
 
@@ -143,18 +133,12 @@ def move_north():
     side_motor_power.on()
     side_motor_north.on()
 
-def move_south():
-    side_motor_north.off()
-    side_motor_power.on()
-    side_motor_south.on()
-
-def sample(winch_distance, north_distance, south_distance, setpoint = None, side_motor = 0):
+def sample(winch_distance, WALL_distance, setpoint = None, side_motor = 0):
     
     TIMES.append(time.ticks_ms())
     SETPOINTS.append(setpoint)
     WINCH_DISTANCES.filter(winch_distance)
-    NORTH_DISTANCES.filter(north_distance)
-    SOUTH_DISTANCES.filter(south_distance)
+    WALL_DISTANCES.filter(WALL_distance)
     SIDE_ACTIONS.append(side_motor)
 
 def to_setpoint(setpoint):
@@ -167,11 +151,18 @@ def to_setpoint(setpoint):
 
         # record one sample per loop
         winch_distance = get_distance_cm(winch_sensor_trig, winch_sensor_echo)
-        north_distance = get_distance_cm(north_sensor_trig, north_sensor_echo)
-        south_distance = get_distance_cm(south_sensor_trig, south_sensor_echo)
+        WALL_distance = get_distance_cm(wall_sensor_trig, wall_sensor_echo)
         
-        sample(winch_distance, north_distance, south_distance, setpoint)
-        if winch_distance is not None and north_distance is not None and south_distance is not None:
+        sample(winch_distance, WALL_distance, setpoint)
+        if winch_distance is not None and WALL_distance is not None:
+
+            # P-only control
+            error = setpoint - winch_distance
+            K_c = 100
+            actuator = K_c * error
+
+            # mind the bounds
+            actuator = int(min(1023, max(400, abs(actuator))))
 
             # timeout/no reading: stop motor and log action 0
             if winch_distance <= 0:
@@ -181,78 +172,77 @@ def to_setpoint(setpoint):
                 time.sleep(0.1)
                 continue
 
-            error = setpoint - winch_distance
-
             if error > 0.25:  # too far
-                winch_up()
-                WINCH_ACTIONS.append("1")
+                winch_up(actuator)
+                WINCH_ACTIONS.append(str(actuator))
 
             elif error < -0.25:  # too close
-                winch_down()
-                WINCH_ACTIONS.append("-1")
+                winch_down(actuator)
+                WINCH_ACTIONS.append(str(actuator))
 
             else:  # at setpoint
                 winch_stop()
                 WINCH_ACTIONS.append("0")
                 break
-        
-def pass_obstacle(load_height = 7, threshold = 0):
 
+def pass_obstacle(setpoint, load_height = 7, threshold = 10):
+
+    timer = 0
+    found_obstacle = False
+    
     while True:
         # wait a sec
         time.sleep(0.1)
 
         # measure distances
         winch_distance = get_distance_cm(winch_sensor_trig, winch_sensor_echo)
-        north_distance = get_distance_cm(north_sensor_trig, north_sensor_echo)
-        south_distance = get_distance_cm(south_sensor_trig, south_sensor_echo)
+        WALL_distance = get_distance_cm(wall_sensor_trig, wall_sensor_echo)
 
         # there is a tall obstacle
-        found_obstacle = False
-        on_obstacle = False
-        if north_distance is not None and winch_distance is not None and south_distance is not None:
-
-            if north_distance + threshold + load_height < winch_distance and not found_obstacle:
-                print("Obstacle: ", north_distance, south_distance, winch_distance)
-                sample(winch_distance, north_distance, south_distance, None, 0)
-                side_stop()
-                to_setpoint(north_distance - load_height - threshold)
+        if winch_distance is not None and WALL_distance is not None:
+            if WALL_distance + threshold + load_height < setpoint and not found_obstacle:
                 found_obstacle = True
+                sample(winch_distance, WALL_distance, None, 0)
+                side_stop()
+                to_setpoint(WALL_distance - load_height)
 
             # there is a valley / we passed over the obstacle
-            elif south_distance - threshold - load_height < winch_distance and found_obstacle:
-                on_obstacle = True
-            
-            elif south_distance - threshold - load_height > winch_distance and on_obstacle:
-                print("Valley: ", north_distance, south_distance, winch_distance)
-                sample(winch_distance, north_distance, south_distance, None, 0)
-                side_stop()
-                to_setpoint(south_distance - load_height - threshold)
+            if found_obstacle:
+                timer += 1
+            # there is a valley / we passed over the obstacle
+            if found_obstacle:
+                timer += 1
 
+            if timer > 80:
+                sample(winch_distance, WALL_distance, None, 0)
+                side_stop()
+
+                # exit
+                break
                 # exit
                 break
 
             # move forward
             else:
-                print("moving forward")
-                sample(winch_distance, north_distance, south_distance, None, 1)
-                move_south()
+                sample(winch_distance, WALL_distance, None, 1)
+                move_north()
 
 def main():
     
-    test_sensors()
     winch_stop()
     side_stop()
+    test_sensors()
 
     try:
         # move_north()
         # time.sleep(1)
-        # side_stop()
+        side_stop()
         to_setpoint(45)
-        pass_obstacle()
+        pass_obstacle(45)
+        to_setpoint(45)
 
     finally:
-        string = "Time,Setpoint,Winch Distance,North Distance,South Distance,Winch Action,Side Action\n"
+        string = "Time,Setpoint,Winch Distance,WALL Distance,Winch Action,Side Action\n"
         stringy = []
 
         def safe_get(container, i):
@@ -265,16 +255,13 @@ def main():
                 except Exception:
                     return ""
 
-        # SMOOTH_TIMES = smooth_times(TIMES)
-
         n = len(TIMES)
         for i in range(n):
             row = [
                 safe_get(TIMES, i),
                 safe_get(SETPOINTS, i),
                 safe_get(WINCH_DISTANCES, i),
-                safe_get(NORTH_DISTANCES, i),
-                safe_get(SOUTH_DISTANCES, i),
+                safe_get(WALL_DISTANCES, i),
                 safe_get(WINCH_ACTIONS, i),
                 safe_get(SIDE_ACTIONS, i)
             ]
@@ -285,9 +272,30 @@ def main():
         with open("data.csv", "w") as file:
             file.write(string)
 
+def alternate():
+
+    winch_stop()
+    side_stop()
+    test_sensors()
+    
+    to_setpoint(45)
+    to_setpoint(10)
+    to_setpoint(45)
+
+    with open("data.csv", "w") as file:
+        file.write( "Time,Setpoint,Winch Distance,Winch Distance Raw,Winch Action\n")
+
+        for thing in zip(TIMES, SETPOINTS, WINCH_DISTANCES.values, WINCH_DISTANCES.raw, WINCH_ACTIONS):
+
+            file.write(",".join(map(str, thing)))
+            file.write("\n")
+
+
 if __name__ == "__main__":
 
-    main()""")
+    # alternate()
+    main()
+""")
 
 with open("boot.py","w") as f: f.write(r"""# boot.py
 """)
